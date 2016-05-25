@@ -566,9 +566,10 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 				}
 				long[] monteCarloCounts = new long[numCardsRemaining];
 				long[] monteCarloSums = new long[numCardsRemaining];
-				int i = 0;
+				int i = numCardsRemaining;
 				while (System.currentTimeMillis() < endTime) {
-					if (i == 0) {
+					if (i == numCardsRemaining) {
+						i = 0;
 						// Just shuffle the cards that haven't already been
 						// played in the "real" game
 						Collections.shuffle(Arrays.asList(cardsRemainingInDeck).subList(0, 51 - numCardsPlayed));
@@ -583,7 +584,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 					assert(Arrays.deepEquals(board, temp));
 					
 
-					i = (i + 1) % numCardsRemaining;
+					i += 1;
 				}
 				return new long[][] {monteCarloCounts, monteCarloSums};
 			} catch (Exception ex) {
