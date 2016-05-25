@@ -25,17 +25,35 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+// XXX: This shouldn't work / this is a bandaid patch.
+// BUG: Fix me please
+// TODO: I should look at this when I have time, but not urgent
+// WISH: If I had infinite time I'd do this, but I don't and my time is
+//       probably better spent elsewhere. (Lower priority TODO, give or take)
+
 // Poker squares:
 // You have a shuffled deck of cards and a 5x5 grid.
 // Flip up the first card, place it at a free position on the grid.
 // Repeat until all 25 cards are played.
-// Then score each row / col as a 5-card poker hand.
+// Then score each row / col as a 5-card poker hand (using the American point system, in this case).
 // Sum said scores, and that is your final score.
 // Minimum possible score is 0, maximum is ~725?
 
-// Note: the way the controller works any timeout or exception is counted as a score of 0.
+// American point system is broken; give or take, the optimum strategy is 
+// "go for flushes in rows; go for whatever in columns" (or vice versa)
+// with a few minor tweaks.
+
+// The controller constructs an instance of this class,
+// calls setPointSystem once (see comment for said method),
+// calls init() before each game,
+// then calls getPlay(<card>) 25x per game to get where to place the 25 cards.
+// It then scores the game as above.
+// It repeats init() through scoring for each game
+// Then just takes the average final score.
+
+// Note: the way the controller works any timeout / exception / invalid play is counted as a score of 0 for that game.
 // As this is the minimum possible score, it is *never* worth it to throw an exception or time out.
-// So there are a lot of places where exceptions are ignored.
+// So there are a lot of places where exceptions are explicitly ignored in release mode.
 // Yes, I had words with the professor about this.
 
 // Basic idea for this player:
@@ -56,9 +74,7 @@ import java.util.concurrent.Executors;
 // decaying learning rate the earlier in the game you get.
 
 // I started with naive TD learning, but for various reasons it tended to be
-// very unstable
-
-// This is elaborated more in the design document, but suffice to say that
+// very unstable. This is elaborated more in the design document, but suffice to say that
 // naive TD learning tends to converge on always predicting the maximum points
 // for all positions.
 
@@ -74,9 +90,15 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	// 0.0 = only use MCTS result
 	// 1.0 = only use BPANNE result
 	// intermediate values lerp between the two.
+	
+	// Chosen by brute-force "try all values in [0,1] by a step of 0.1 and pick best"
+	// Probably different based on exact estimator
+	// For the current estimator, score is pretty flat between ~0.2 to ~0.5 and drops off above / below that.
+	// WISH: use a meta-optimizer to find best value automagicially.
 	private static final double ESTIMATION_WEIGHT = 0.2;
 	
 	// How many threads to use.
+	// TODO: figure out optimum when including hyperthreading
 	private static final int NUM_THREADS = Runtime.getRuntime().availableProcessors();
 	
 	private static final JHarrisBPANNE estimator = loadEstimatorFromFile("JHarrisTDEstimator.dat");
