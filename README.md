@@ -1,5 +1,7 @@
 This is my final project for an AI class - namely, an american-point-system poker squares player using temporal difference learning to train a neural network board state estimator, that in turn feeds a naive (albeit multithreaded) Monte Carlo tree search.
 
+Note: requires the driver code found [here](http://tinyurl.com/pokersqrs) or [here](http://cs.gettysburg.edu/~tneller/games/pokersquares/code/).
+
 Contained in this repository also are several files used during the development of this project and training of the state estimator used
 
 Contents:
