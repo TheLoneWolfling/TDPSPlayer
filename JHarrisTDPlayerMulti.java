@@ -91,10 +91,12 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	// 0.0 = only use MCTS result
 	// 1.0 = only use BPANNE result
 	// intermediate values lerp between the two.
-	
-	// Chosen by brute-force "try all values in [0,1] by a step of 0.1 and pick best"
+
+	// Chosen by brute-force "try all values in [0,1] by a step of 0.1 and pick
+	// best"
 	// Probably different based on exact estimator
-	// For the current estimator, score is pretty flat between ~0.2 to ~0.5 and drops off above / below that.
+	// For the current estimator, score is pretty flat between ~0.2 to ~0.5 and
+	// drops off above / below that.
 	// WISH: use a meta-optimizer to find best value automagicially.
 	private static final double ESTIMATION_WEIGHT = 0.2;
 
