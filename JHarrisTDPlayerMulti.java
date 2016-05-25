@@ -1,3 +1,4 @@
+
 /*
  * TDPSPlayer - a naive learned-function MCTS poker squares player
  * Copyright (C) 2016 James Harris
@@ -70,15 +71,15 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	// How long (in ms) to leave to do final move selection
 	// Realistically, not even needed.
 	private static final long MILLIS_TIME_FINAL = 2;
-	
+
 	// 0.0 = only use MCTS result
 	// 1.0 = only use BPANNE result
 	// intermediate values lerp between the two.
 	private static final double ESTIMATION_WEIGHT = 0.2;
-	
+
 	// How many threads to use.
 	private static final int NUM_THREADS = Runtime.getRuntime().availableProcessors();
-	
+
 	private static final JHarrisBPANNE estimator = loadEstimatorFromFile("JHarrisTDEstimator.dat");
 
 	private static final ExecutorService pool = Executors.newFixedThreadPool(NUM_THREADS);
@@ -86,7 +87,6 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	private static final CompletionService<long[][]> completionService = new ExecutorCompletionService<long[][]>(pool);
 
 	public static final boolean ASSERTIONS_ENABLED = checkAssertionsEnabled();
-
 
 	// Number of cards played on the board so far.
 	// Note: in the middle of getPlay it's generally one off, as is
@@ -98,48 +98,54 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	// So: 0-25, not 0-52.
 	// Note: in the middle of getPlay it's generally one off, as is
 	// numCardsPlayed
-	private /* unsigned */ int numCardsRemaining; // 0 <= numCardsRemaining <= 25
-	
+	private /* unsigned */ int numCardsRemaining; // 0 <= numCardsRemaining <=
+													// 25
+
 	// Note for all of these arrays:
 	// They would all be lists, except that Java is Java.
-	// There's enough overhead that it does noticeably worse when these are lists
+	// There's enough overhead that it does noticeably worse when these are
+	// lists
 	// as opposed to arrays.
 
 	// Note: last `numCardsPlayed` cards are the cards already played
 	// And the first play is card #0, the second card #1, and so on for the
 	// MCTS.
 	// Should not contain null.
-	private Card[/*52*/] cardsRemainingInDeck;
+	private Card[/* 52 */] cardsRemainingInDeck;
 
 	// XY coordinates of the remaining free positions on the board.
 	// Note that this gets "shuffled" around - the last `numCardsPlayed`
 	// positions are the positions already played.
 	// Should not contain null.
-	private int[/*25*/][/*2*/] freePositions;
+	private int[/* 25 */][/* 2 */] freePositions;
 
 	// Null values mean "no card at position"
 	// Indexed as board[x][y]
 	// WISH: pull out to separate class with proper getter / setters
 	// Probably overkill, though.
-	private Card[/*5*/][/*5*/] board;
+	private Card[/* 5 */][/* 5 */] board;
 
 	// TODO: pull into JHarrisBPANNE
 	private static final PokerSquaresPointSystem POINT_SYSTEM = PokerSquaresPointSystem.getAmericanPointSystem();
 
 	// Should be 1000
-	// WISH: change to offset and scale according to *actual* min/max scores possible.
+	// WISH: change to offset and scale according to *actual* min/max scores
+	// possible.
 	// But there is no easy way to figure out either of those.
 	private static final int ESTIMATOR_SCALE = normalizeMinMax(POINT_SYSTEM.getScoreTable());
 
 	// Returns normalization factor
-	// Must be the case that -ESTIMATOR_SCALE <= minimum achievable score <= maximum achievable score <= ESTIMATOR_SCALE currently
+	// Must be the case that -ESTIMATOR_SCALE <= minimum achievable score <=
+	// maximum achievable score <= ESTIMATOR_SCALE currently
 	// See ESTIMATOR_SCALE comment
-	
-	// Note that this must be the same between the BPANNE training run and the scoring run!
-	
+
+	// Note that this must be the same between the BPANNE training run and the
+	// scoring run!
+
 	// WISH: do a training run with better scale and offset.
 	// IIRC, minimum / maximum actual scores are 0 and 725, respectively.
-	// So then scale would be ceil((725-0)/2) = 363, and offset would be 362 or 363.
+	// So then scale would be ceil((725-0)/2) = 363, and offset would be 362 or
+	// 363.
 	// Probably 363, so the actual and predicted minimums coincide.
 	// TODO: pull into JHarrisBPANNE
 	private static int normalizeMinMax(int[] pointTable) {
@@ -151,7 +157,8 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 			max = Math.max(max, entry);
 		}
 		final int numRowsAndCols = 5 + 5;
-		// Currently assumes that offset=0, and so the achievable values are between scale*-10 and scale*10
+		// Currently assumes that offset=0, and so the achievable values are
+		// between scale*-10 and scale*10
 		return Math.max(Math.abs(min), Math.abs(max)) * numRowsAndCols;
 	}
 
@@ -170,7 +177,8 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 			e.printStackTrace();
 			throw new RuntimeException("Cannot find estimator?");
 			// TODO: replace with rethrowing exception and propagate through
-			// Question: what type of exception should be thrown? UnableToLoadEstimator(String filename)?
+			// Question: what type of exception should be thrown?
+			// UnableToLoadEstimator(String filename)?
 		} finally {
 			try {
 				if (in != null)
@@ -190,7 +198,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 			}
 		}
 	}
-	
+
 	public JHarrisTDPlayerMulti() {
 		System.out.println(getName() + " using " + NUM_THREADS + " threads.");
 	}
@@ -202,8 +210,8 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		// As such, this method should not do anything.
 
 		// Check that it's setting it to the American point system only.
-		assert(Arrays.equals(system.getScoreTable(), POINT_SYSTEM.getScoreTable()));
-		
+		assert (Arrays.equals(system.getScoreTable(), POINT_SYSTEM.getScoreTable()));
+
 		// ...and yet it does. Programming in a nutshell.
 	}
 
@@ -215,7 +223,8 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		this.numCardsPlayed = 0;
 		this.numCardsRemaining = 25;
 		// Overkill - could just re-sort the existing cards in deck
-		// But this way I don't need to worry about errors compounding over multiple games
+		// But this way I don't need to worry about errors compounding over
+		// multiple games
 		this.cardsRemainingInDeck = Card.getAllCards();
 		// Ditto
 		this.freePositions = makeFreePositions();
@@ -231,18 +240,24 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 
 		// Relatively expensive, but done 25 times / 30 seconds means that
 		// it's not worth it to try to deal with currently. Boo hoo.
-		// And by "relatively expensive" I mean it needs to do at max 52 lookups. Not too bad anyways.
-		// Note: if cardsRemainingInDeck was a List, then I could just search it via indexOf.
+		// And by "relatively expensive" I mean it needs to do at max 52
+		// lookups. Not too bad anyways.
+		// Note: if cardsRemainingInDeck was a List, then I could just search it
+		// via indexOf.
 		// But Java is Java, and as such it's too slow if I do that.
 		int index = getIndexOfCardInDeck(card, cardsRemainingInDeck);
 
-		// What? You want the index of the card in the deck to actually be the index of the card in the deck?
+		// What? You want the index of the card in the deck to actually be the
+		// index of the card in the deck?
 		// Preposterous!
-		assert(cardsRemainingInDeck[index].getCardId() == card.getCardId());
+		assert (cardsRemainingInDeck[index].getCardId() == card.getCardId());
 
-		// As per the declaration: the cards played so far are swapped to the back of the deck
-		// This would be a micro-optimization, but it's done so often that it's worth it.
-		// As every Monte Carlo run involves playing all the way through to the end then undoing it all...
+		// As per the declaration: the cards played so far are swapped to the
+		// back of the deck
+		// This would be a micro-optimization, but it's done so often that it's
+		// worth it.
+		// As every Monte Carlo run involves playing all the way through to the
+		// end then undoing it all...
 		swap(cardsRemainingInDeck, index, 51 - numCardsPlayed);
 
 		// Should always be overwritten, but best to keep something sane
@@ -254,72 +269,88 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		// the function estimator focuses on certain parts of the game tree
 		// it does (substantially) better if I let it "waste" the time figuring
 		// out where to play the first card. Go figure.
-		
+
 		// TODO: run a training run with it set to only use "useful" positions
-		// i.e. only one position per unique set of {row, column}. (That's a set, so {row, column} == {column, row}.)
+		// i.e. only one position per unique set of {row, column}. (That's a
+		// set, so {row, column} == {column, row}.)
 		// Should make it faster / better.
 		// "Should".
-		
+
 		if (numCardsRemaining > 1) { // Last card played is trivial.
-		
-			// TODO: could probably move startTime's declaration inside this block, which would
+
+			// TODO: could probably move startTime's declaration inside this
+			// block, which would
 			// shave a (tiny) amount of time off of the first / last plays.
-		
+
 			// Calculate how long we have per play...
 
-			long millisPerPlayAndCleanup = (long) ((millisRemaining - MILLIS_TIME_BUFFER) / (double) (numCardsRemaining - 1));
-			
+			long millisPerPlayAndCleanup = (long) ((millisRemaining - MILLIS_TIME_BUFFER)
+					/ (double) (numCardsRemaining - 1));
+
 			// ...Take off the time for doing final cleanup per play...
-	
+
 			long millisForPlay = millisPerPlayAndCleanup - MILLIS_TIME_FINAL;
-			
+
 			// ...and figure out our end time based on that.
-	
+
 			long endTime = startTime + millisForPlay;
-	
+
 			// The most annoying thing about doing this as a do/undo
 			// setup as opposed to doing (slow) defensive copies everywhere:
 			// So many "oops I just trashed the state of the board" errors.
-			
-			// So when debugging, make a defensive copy of the board to check against later to ensure
+
+			// So when debugging, make a defensive copy of the board to check
+			// against later to ensure
 			// that the board state doesn't get trashed.
-	
+
 			Card[][] temp = null;
 			if (ASSERTIONS_ENABLED) {
 				temp = board.clone();
 				for (int ii = 0; ii < 5; ii++)
 					temp[ii] = board[ii].clone();
 			}
-			
+
 			// TODO: see if reusing MonteCarloCallables makes any sense at all.
-			// It'd save NUM_THREADS allocations per play, which I suspect wouldn't make
+			// It'd save NUM_THREADS allocations per play, which I suspect
+			// wouldn't make
 			// much of a difference. Nonetheless, worth a check.
 			MonteCarloCallable[] tasks = new MonteCarloCallable[NUM_THREADS];
 			for (int i = 0; i < NUM_THREADS; i++) {
-				tasks[i] = new MonteCarloCallable(this, card, endTime); // Wish I didn't have to do all this constructing. Oh well.
+				tasks[i] = new MonteCarloCallable(this, card, endTime); // Wish
+																		// I
+																		// didn't
+																		// have
+																		// to do
+																		// all
+																		// this
+																		// constructing.
+																		// Oh
+																		// well.
 			}
 			for (int i = 0; i < NUM_THREADS; i++) {
 				completionService.submit(tasks[i]);
 			}
-			
-			// While tasks are running, the main thread now steals enough cycles to
+
+			// While tasks are running, the main thread now steals enough cycles
+			// to
 			// calculate the estimated values of this move directly.
 			double[] estimatedValues = new double[numCardsRemaining];
 			for (int i = 0; i < numCardsRemaining; i++) {
 				doBoardPlay(board, card, freePositions[i]);
 				estimatedValues[i] = getValueForBoardPos(board);
 				undoBoardPlay(board, freePositions[i]);
-				assert(Arrays.deepEquals(board, temp));
+				assert (Arrays.deepEquals(board, temp));
 			}
-			
+
 			// Now as tasks return sum the counts and sums...
-	
+
 			long[] monteCarloSums = new long[numCardsRemaining];
 			long[] monteCarloCounts = new long[numCardsRemaining];
 			for (int i = 0; i < NUM_THREADS; i++) {
 				try {
-					long[][] comp = completionService.take().get(); // Acts as a memory
-											// barrier, yay!
+					long[][] comp = completionService.take().get(); // Acts as a
+																	// memory
+					// barrier, yay!
 					for (int j = 0; j < numCardsRemaining; j++) {
 						monteCarloCounts[j] += comp[0][j];
 						monteCarloSums[j] += comp[1][j];
@@ -329,31 +360,41 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 					continue; // Better to ignore it than to suffer a zero.
 				}
 			}
-	
-			// Find best value according to a weighted average of the directly estimated value and the MC average value
-	
+
+			// Find best value according to a weighted average of the directly
+			// estimated value and the MC average value
+
 			double bestValue = Double.NEGATIVE_INFINITY;
-	
+
 			long count = 0;
 			for (int j = 0; j < numCardsRemaining; j++) {
 				count += monteCarloCounts[j];
 				final double value;
-				if (monteCarloCounts[j] == 0 || ESTIMATION_WEIGHT == 1) // Only happens if we're *really*
-											// pressed for time...
+				if (monteCarloCounts[j] == 0 || ESTIMATION_WEIGHT == 1) // Only
+																		// happens
+																		// if
+																		// we're
+																		// *really*
+					// pressed for time...
 					value = estimatedValues[j];
 				else
-					value = estimatedValues[j] * ESTIMATION_WEIGHT // TODO: replace with lerp function?
+					value = estimatedValues[j] * ESTIMATION_WEIGHT // TODO:
+																	// replace
+																	// with lerp
+																	// function?
 							+ monteCarloSums[j] / (double) monteCarloCounts[j] * (1 - ESTIMATION_WEIGHT);
-				// Had fancy tie-breaking, but realized that it never came up due to
+				// Had fancy tie-breaking, but realized that it never came up
+				// due to
 				// the estimated values being ~unique.
 				if (value > bestValue) {
 					play = j;
 					bestValue = value;
 				}
-	
+
 			}
 			// WISH: Proper logging
-			System.out.println(count + "\t" + monteCarloSums[play] / (double) monteCarloCounts[play] + "\t" + estimatedValues[play] + "\t" + bestValue + "\t" + (System.currentTimeMillis() - endTime));
+			System.out.println(count + "\t" + monteCarloSums[play] / (double) monteCarloCounts[play] + "\t"
+					+ estimatedValues[play] + "\t" + bestValue + "\t" + (System.currentTimeMillis() - endTime));
 		}
 
 		int[] xyPlay = freePositions[play];
@@ -371,22 +412,23 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		boolean checkAssert = false;
 		assert checkAssert = true; // Side effect is intentional
 		if (checkAssert)
-			System.out.println("Assertions are enabled"); // WISH: Proper logging
+			System.out.println("Assertions are enabled"); // WISH: Proper
+															// logging
 		return checkAssert;
 	}
 
 	private static double getValueForBoardPos(Card[][] board) {
 		// TODO: move into JHarrisBPANNE
-		
+
 		// Warning: this function cannot be changed without a full
 		// training run.
-		
+
 		// Current inputs for network:
 		// isNull(x, y) -> 5x5=25
 		// rank(x,y) -> 5x5=25
 		// suit(x,y) -> 5x5=25
 		// currentScore(board) -> 1=1
-		
+
 		// Some other possible inputs for the network:
 		// cardId(x,y) -> 5x5=25
 		// isSuit(x,y,suit) -> 5x5x4=100
@@ -402,15 +444,16 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		// avgScore(board) -> 1=1
 		// isCardPlayed(card) -> 52=52
 		// isCardLeft(card) -> 52=52
-		
+
 		// With associated scaling / whitening?
-		
-		// WISH: run a meta-optimizer over the above to figure out optimum inputs
-		
+
+		// WISH: run a meta-optimizer over the above to figure out optimum
+		// inputs
+
 		double[] input = new double[25 * (1 + 1 + 1) + 1];
 		// Could be a List, but Java lack-of-optimizations makes it *slow*.
 		// Especially with boxing / unboxing.
-		
+
 		int ind = 0;
 		int numFree = 0;
 		for (int i = 0; i < 25; i++) {
@@ -426,20 +469,20 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 			return boardScore;
 		input[ind++] = boardScore / (double) ESTIMATOR_SCALE;
 
-		assert(ind == input.length);
+		assert (ind == input.length);
 
 		return estimator.doEstimate(input) * (double) ESTIMATOR_SCALE;
-		
+
 	}
 
 	private static void undoBoardPlay(Card[][] board, int[] pos) {
-		assert(board[pos[0]][pos[1]] != null);
+		assert (board[pos[0]][pos[1]] != null);
 
 		board[pos[0]][pos[1]] = null;
 	}
 
 	private static void doBoardPlay(Card[][] board, Card card, int[] pos) {
-		assert(board[pos[0]][pos[1]] == null);
+		assert (board[pos[0]][pos[1]] == null);
 
 		board[pos[0]][pos[1]] = card;
 	}
@@ -452,59 +495,83 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		if (numCardsLeft == 0)
 			return POINT_SYSTEM.getScore(board);
 
-		// If assertions are enabled, make a copy of the board to check that the do / undo setup is sound
+		// If assertions are enabled, make a copy of the board to check that the
+		// do / undo setup is sound
 		Card[][] temp = null;
 		if (ASSERTIONS_ENABLED) {
 			temp = board.clone();
 			for (int ii = 0; ii < 5; ii++)
 				temp[ii] = board[ii].clone();
 		}
-		
-		// TODO: pull this into a function of its own, as it's duplicated with the
+
+		// TODO: pull this into a function of its own, as it's duplicated with
+		// the
 		// main getPlay function (just after starting the Monte Carlo threads)
 		int bestIndex = 0;
 		double best = Double.NEGATIVE_INFINITY;
 		Card card = cardsRemainingInDeck[numCardsPlayed]; // Grab next card...
 		for (int j = 0; j < numCardsLeft; j++) {
-			doBoardPlay(board, card, freePositions[j]); // Try putting it in a position...
-			double value = getValueForBoardPos(board); // Get the estimated value...
-			undoBoardPlay(board, freePositions[j]); // Remove the card from said position
+			doBoardPlay(board, card, freePositions[j]); // Try putting it in a
+														// position...
+			double value = getValueForBoardPos(board); // Get the estimated
+														// value...
+			undoBoardPlay(board, freePositions[j]); // Remove the card from said
+													// position
 
-			assert(Arrays.deepEquals(board, temp)); // Check that we haven't messed anything up
+			assert (Arrays.deepEquals(board, temp)); // Check that we haven't
+														// messed anything up
 
-			// Due to the estimator ties appear so rarely that it's not even worth
+			// Due to the estimator ties appear so rarely that it's not even
+			// worth
 			// accounting for them.
 			if (value > best) { // If it's the best we've see so far...
 				bestIndex = j; // record it.
 				best = value;
 			}
 		}
-		assert(Arrays.deepEquals(board, temp)); // Check (again) that we haven't messed anything up
-							// Probably not needed.
+		assert (Arrays.deepEquals(board, temp)); // Check (again) that we
+													// haven't messed anything
+													// up
+		// Probably not needed.
 
-		doBoardPlayAndFreePos(freePositions, board, card, bestIndex, numCardsLeft - 1); // Do the best play...
-		
+		doBoardPlayAndFreePos(freePositions, board, card, bestIndex, numCardsLeft - 1); // Do
+																						// the
+																						// best
+																						// play...
+
 		int toRet = getValueOfGamePlayedToEnd(board, cardsRemainingInDeck, freePositions, numCardsLeft - 1,
 				numCardsPlayed + 1); // Recurse!
-		undoBoardPlayAndFreePos(freePositions, board, bestIndex, numCardsLeft - 1); // Undo said play...
+		undoBoardPlayAndFreePos(freePositions, board, bestIndex, numCardsLeft - 1); // Undo
+																					// said
+																					// play...
 
-		assert(Arrays.deepEquals(board, temp));// Check (yet again) that we haven't messed anything up
+		assert (Arrays.deepEquals(board, temp));// Check (yet again) that we
+												// haven't messed anything up
 
 		return toRet; // Return the value of the game played to the end
 	}
 
 	private static void doBoardPlayAndFreePos(int[][] freePositions, Card[][] board, Card card, int index,
 			int numCardsLeft) {
-		doBoardPlay(board, card, freePositions[index]); // Play the card to the board...
-		swap(freePositions, index, numCardsLeft); // And record the play position as no longer free
+		doBoardPlay(board, card, freePositions[index]); // Play the card to the
+														// board...
+		swap(freePositions, index, numCardsLeft); // And record the play
+													// position as no longer
+													// free
 	}
 
 	private static void undoBoardPlayAndFreePos(int[][] freePositions, Card[][] board, int index, int numCardsLeft) {
-		swap(freePositions, index, numCardsLeft); // Remove the card from the board...
-		undoBoardPlay(board, freePositions[index]); // And record the play position as free again
+		swap(freePositions, index, numCardsLeft); // Remove the card from the
+													// board...
+		undoBoardPlay(board, freePositions[index]); // And record the play
+													// position as free again
 	}
 
-	private static <T> void swap(T[] array, int indA, int indB) { // Standard swap routine for arrays
+	private static <T> void swap(T[] array, int indA, int indB) { // Standard
+																	// swap
+																	// routine
+																	// for
+																	// arrays
 		T temp = array[indA];
 		array[indA] = array[indB];
 		array[indB] = temp;
@@ -513,11 +580,12 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	private static int getIndexOfCardInDeck(Card card, Card[] cardsRemainingInDeck) {
 		int id = card.getCardId();
 		// Might be slightly faster to just check reference equality,
-		// but I don't know if it's guaranteed that there is exactly one card with a given rank/suit floating around.
+		// but I don't know if it's guaranteed that there is exactly one card
+		// with a given rank/suit floating around.
 		for (int i = 0; i < cardsRemainingInDeck.length; i++)
 			if (cardsRemainingInDeck[i].getCardId() == id)
 				return i;
-		assert(false);
+		assert (false);
 		// Shouldn't happen, but if we're here it's better to potentially pick
 		// any points we *can* get.
 		return 0;
@@ -526,62 +594,62 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	private void doSanityCheck() {
 		if (!ASSERTIONS_ENABLED)
 			return;
-		
-		assert(MILLIS_TIME_BUFFER >= 0);
-		
+
+		assert (MILLIS_TIME_BUFFER >= 0);
+
 		assert (MILLIS_TIME_FINAL >= 0);
-		
+
 		assert (ESTIMATION_WEIGHT >= 0);
 		assert (ESTIMATION_WEIGHT <= 1);
-		
+
 		assert (NUM_THREADS >= 1);
 
 		// Ensure things that shouldn't be null, aren't
-		assert(board != null);
-		assert(cardsRemainingInDeck != null);
-		assert(freePositions != null);
+		assert (board != null);
+		assert (cardsRemainingInDeck != null);
+		assert (freePositions != null);
 
 		// Ensure number of cards remaining is within limits
-		assert(numCardsRemaining > 0);
-		assert(numCardsRemaining <= 25);
+		assert (numCardsRemaining > 0);
+		assert (numCardsRemaining <= 25);
 
 		// Ensure number of cards played is within limits
-		assert(numCardsPlayed >= 0);
-		assert(numCardsPlayed < 25);
+		assert (numCardsPlayed >= 0);
+		assert (numCardsPlayed < 25);
 
 		// Ensure number of cards played matches number of cards remaining
-		assert(25 == numCardsPlayed + numCardsRemaining);
+		assert (25 == numCardsPlayed + numCardsRemaining);
 
 		// Ensure the deck still contains the right number of cards...
-		assert(cardsRemainingInDeck.length == 52);
+		assert (cardsRemainingInDeck.length == 52);
 
 		// ...and that every card in the deck is there at most once...
 		boolean[] cardsFound = new boolean[52];
 		for (Card c : cardsRemainingInDeck) {
-			assert(c != null);
-			assert(!cardsFound[c.getCardId()]);
+			assert (c != null);
+			assert (!cardsFound[c.getCardId()]);
 			cardsFound[c.getCardId()] = true;
 		}
 		// ...and that every card in the deck is there at least once.
 		for (boolean b : cardsFound)
-			assert(b);
+			assert (b);
 
 		// Ensure that every card on the board is there at most once...
 		int count = 0;
 		boolean[] cardsFoundOnBoard = new boolean[52];
 		for (int x = 0; x < 5; x++) {
-			assert(board[x] != null);
+			assert (board[x] != null);
 			for (int y = 0; y < 5; y++) {
 				if (board[x][y] != null) {
 					count += 1;
-					assert(!cardsFoundOnBoard[board[x][y].getCardId()]);
+					assert (!cardsFoundOnBoard[board[x][y].getCardId()]);
 					cardsFoundOnBoard[board[x][y].getCardId()] = true;
 				}
 			}
 		}
 		// ... and that the number of cards on the board matches the number of
 		// cards played.
-		assert(count == numCardsPlayed);
+		assert (count == numCardsPlayed);
 
 		boolean[][] bBoard = new boolean[5][];
 		for (int x = 0; x < 5; x++) {
@@ -589,17 +657,17 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		}
 
 		// Ensure the free positions list is the correct length
-		assert(freePositions.length == 25);
+		assert (freePositions.length == 25);
 
 		// Ensure that every free position is in freePositions at most once
 		// And that the values in freePositions are "sane".
 		for (int[] xy : freePositions) {
-			assert(xy != null);
-			assert(xy[0] >= 0);
-			assert(xy[0] < 5);
-			assert(xy[1] >= 0);
-			assert(xy[1] < 5);
-			assert(!bBoard[xy[0]][xy[1]]);
+			assert (xy != null);
+			assert (xy[0] >= 0);
+			assert (xy[0] < 5);
+			assert (xy[1] >= 0);
+			assert (xy[1] < 5);
+			assert (!bBoard[xy[0]][xy[1]]);
 			bBoard[xy[0]][xy[1]] = true;
 		}
 
@@ -607,17 +675,17 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		// the board
 		for (int i = 0; i < numCardsRemaining; i++) {
 			int[] xy = freePositions[i];
-			assert(board[xy[0]][xy[1]] == null);
+			assert (board[xy[0]][xy[1]] == null);
 		}
 
 		// Ensure that every card that hasn't been played isn't on the board...
 		for (int i = 0; i < 52 - numCardsPlayed; i++) {
-			assert(!cardsFoundOnBoard[cardsRemainingInDeck[i].getCardId()]);
+			assert (!cardsFoundOnBoard[cardsRemainingInDeck[i].getCardId()]);
 		}
 
 		// ...and that every card that has been played is on the board
 		for (int i = 52 - numCardsPlayed; i < 52; i++) {
-			assert(cardsFoundOnBoard[cardsRemainingInDeck[i].getCardId()]);
+			assert (cardsFoundOnBoard[cardsRemainingInDeck[i].getCardId()]);
 		}
 
 	}
@@ -651,7 +719,6 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 			System.out.println((i + 1) + "\t" + playScore + "\t" + score / (i + 1.0));
 		}
 	}
-	
 
 	private static class MonteCarloCallable implements Callable<long[][]> {
 		// The below all have the same comments as JHarrisTDPlayerMulti
@@ -661,27 +728,28 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		private int numCardsPlayed;
 		private Card[] cardsRemainingInDeck;
 		private int[][] freePositions;
-		
+
 		// The card that we have to play currently.
 		private Card card;
 
 		public MonteCarloCallable(JHarrisTDPlayerMulti play, Card card, double endTime) {
 			// So many defensive copies :/
-			// WISH: look at having the main player instead keep NUM_THREADS copies of everything?
-			
+			// WISH: look at having the main player instead keep NUM_THREADS
+			// copies of everything?
+
 			// TODO: look at using clone instead?
-			
+
 			this.freePositions = new int[25][];
 			for (int j = 0; j < 25; j++)
 				this.freePositions[j] = new int[] { play.freePositions[j][0], play.freePositions[j][1] };
-				
+
 			this.board = new Card[5][];
 			for (int j = 0; j < 5; j++) {
 				this.board[j] = new Card[5];
 				for (int k = 0; k < 5; k++)
 					this.board[j][k] = play.board[j][k];
 			}
-			
+
 			this.numCardsRemaining = play.numCardsRemaining;
 			this.numCardsPlayed = play.numCardsPlayed;
 
@@ -696,23 +764,26 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 			try {
 				// Ensure that there are no weird do/undo errors...
 				Card[][] temp = null;
-				// ASSERTIONS_ENABLED is static final, so this "should" be fine across multiple threads?
+				// ASSERTIONS_ENABLED is static final, so this "should" be fine
+				// across multiple threads?
 				// TODO: ensure that this access is legal.
 				if (ASSERTIONS_ENABLED) {
 					temp = board.clone();
 					for (int ii = 0; ii < 5; ii++)
 						temp[ii] = board[ii].clone();
 				}
-				
+
 				long[] monteCarloCounts = new long[numCardsRemaining];
 				long[] monteCarloSums = new long[numCardsRemaining];
-				
-				// Basic idea: shuffle the deck. Then play a game with the card played in each position.
+
+				// Basic idea: shuffle the deck. Then play a game with the card
+				// played in each position.
 				// Then repeat.
-				
+
 				// The inner loop is implicit.
-				// TODO: look at replacing this loop with while(True) { for (i in range(numCardsRemaining) {if timeout break both loops}}
-				
+				// TODO: look at replacing this loop with while(True) { for (i
+				// in range(numCardsRemaining) {if timeout break both loops}}
+
 				int i = numCardsRemaining;
 				while (System.currentTimeMillis() < endTime) {
 					if (i == numCardsRemaining) {
@@ -724,16 +795,19 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 
 					doBoardPlayAndFreePos(freePositions, board, card, i, numCardsRemaining - 1);
 					int value = getValueOfGamePlayedToEnd(board, cardsRemainingInDeck, freePositions,
-							numCardsRemaining - 1, numCardsPlayed + 1); // Play a game
+							numCardsRemaining - 1, numCardsPlayed + 1); // Play
+																		// a
+																		// game
 					monteCarloSums[i] += value;
 					monteCarloCounts[i] += 1;
 					undoBoardPlayAndFreePos(freePositions, board, i, numCardsRemaining - 1);
-					assert(Arrays.deepEquals(board, temp));
-					
+					assert (Arrays.deepEquals(board, temp));
 
 					i += 1;
 				}
-				return new long[][] {monteCarloCounts, monteCarloSums}; // So much garbage...
+				return new long[][] { monteCarloCounts, monteCarloSums }; // So
+																			// much
+																			// garbage...
 			} catch (Exception ex) {
 				System.err.println(ex);
 				if (ASSERTIONS_ENABLED) {
@@ -741,7 +815,17 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 					t.getUncaughtExceptionHandler().uncaughtException(t, ex);
 					return null;
 				}
-				return new long[][] {new long[numCardsRemaining], new long[numCardsRemaining]}; // i.e. just act as though we didn't do anything at all
+				return new long[][] { new long[numCardsRemaining], new long[numCardsRemaining] }; // i.e.
+																									// just
+																									// act
+																									// as
+																									// though
+																									// we
+																									// didn't
+																									// do
+																									// anything
+																									// at
+																									// all
 			}
 		}
 
