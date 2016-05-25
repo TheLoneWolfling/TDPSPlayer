@@ -101,8 +101,8 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 
 	private static int normalizeMinMax(int[] pointTable) {
 		// Scales points so they are within [-1,1], inclusive
-		int min = pointTable[0];
-		int max = pointTable[0];
+		int min = Integer.MAX_VALUE;
+		int max = Integer.MIN_VALUE;
 		for (int entry : pointTable) {
 			min = Math.min(min, entry);
 			max = Math.max(max, entry);
