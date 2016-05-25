@@ -247,7 +247,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 			for (int j = 0; j < numCardsRemaining; j++) {
 				count += monteCarloCounts[j];
 				final double value;
-				if (monteCarloCounts[j] == 0) // Only happens if we're *really*
+				if (monteCarloCounts[j] == 0 || ESTIMATION_WEIGHT == 1) // Only happens if we're *really*
 												// pressed for time...
 					value = estimatedValues[j];
 				else
