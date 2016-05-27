@@ -842,7 +842,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	private static class MonteCarloCallable implements Callable<long[][]> {
 		// The below all have the same comments as JHarrisTDPlayerMulti
 		private Card[][] board;
-		private double endTime;
+		private long endTime;
 		private int numCardsRemaining;
 		private int numCardsPlayed;
 		private Card[] cardsRemainingInDeck;
@@ -855,7 +855,6 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		/**
 		 * Instantiates a new MonteCarloCallable.
 		 * 
-		 * TODO: look at using an integer type instead of double for endTime
 		 * TODO: Sanity checks?
 		 *
 		 * @param play
@@ -865,7 +864,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		 * @param endTime
 		 *            the time that we should return at
 		 */
-		public MonteCarloCallable(JHarrisTDPlayerMulti play, Card card, double endTime) {
+		public MonteCarloCallable(JHarrisTDPlayerMulti play, Card card, long endTime) {
 			// So many defensive copies :/
 			// WISH: look at having the main player instead keep NUM_THREADS
 			// copies of everything?
