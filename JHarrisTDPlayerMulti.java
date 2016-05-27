@@ -102,7 +102,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	private static final double ESTIMATION_WEIGHT = 0.2;
 
 	// How many threads to use.
-	// TODO: figure out optimum when including hyperthreading
+	// WISH: figure out optimum when including hyperthreading
 	private static final int NUM_THREADS = Runtime.getRuntime().availableProcessors();
 
 	private static final ExecutorService pool = Executors.newFixedThreadPool(NUM_THREADS);
