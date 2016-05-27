@@ -283,7 +283,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		// it does (substantially) better if I let it "waste" the time figuring
 		// out where to play the first card. Go figure.
 
-		// TODO: run a training run with it set to only use "useful" positions
+		// WISH: run a training run with it set to only use "useful" positions
 		// i.e. only one position per unique set of {row, column}. (That's a
 		// set, so {row, column} == {column, row}.)
 		// Should make it faster / better.
@@ -915,7 +915,6 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		/**
 		 * Instantiates a new MonteCarloCallable.
 		 * 
-		 * TODO: Sanity checks?
 		 *
 		 * @param play
 		 *            the parent JHArrisTDPlayer
@@ -928,6 +927,8 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 			// So many defensive copies :/
 			// WISH: look at having the main player instead keep NUM_THREADS
 			// copies of everything?
+			
+			play.doSanityCheck();
 
 			this.freePositions = new int[25][];
 			for (int j = 0; j < 25; j++)
