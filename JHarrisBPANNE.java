@@ -180,7 +180,7 @@ public class JHarrisBPANNE implements Serializable {
 	 * IIRC, minimum / maximum actual scores are 0 and 725, respectively. WISH:
 	 * do a training run with better scale and offset. So then scale would be
 	 * ceil((725-0)/2) = 363, and offset would be 362 or 363. Probably 363, so
-	 * the actual and predicted minimums coincide. TODO: pull into JHarrisBPANNE
+	 * the actual and predicted minimums coincide.
 	 *
 	 * @param pointTable[10]
 	 *            a table containing points for [high card, one pair, ...]

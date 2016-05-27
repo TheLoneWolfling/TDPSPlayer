@@ -110,6 +110,35 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	private static final CompletionService<long[][]> completionService = new ExecutorCompletionService<long[][]>(pool);
 
 	public static final boolean ASSERTIONS_ENABLED = JHarrisTDPlayerMulti.class.desiredAssertionStatus();
+	
+	/**
+	 * Checks that the current static state is "sane", i.e. hasn't been
+	 * corrupted
+	 * 
+	 * Doesn't do anything if assertions are not enabled.
+	 */
+	static void doStaticSanityChecks() {
+		if (!ASSERTIONS_ENABLED)
+			return;
+
+		assert (MILLIS_TIME_BUFFER >= 0);
+		assert (MILLIS_TIME_FINAL >= 0);
+
+		assert (ESTIMATION_WEIGHT >= 0);
+		assert (ESTIMATION_WEIGHT <= 1);
+
+		assert (NUM_THREADS >= 1);
+		
+		assert (pool != null);
+		assert (!pool.isTerminated());
+		assert (!pool.isShutdown());
+		
+		assert (completionService != null);
+	}
+	
+	static {
+		doStaticSanityChecks();
+	}
 
 	private final JHarrisBPANNE estimator;
 
@@ -683,19 +712,10 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 			int numCardsRemaining, int numCardsPlayed) {
 		if (!ASSERTIONS_ENABLED)
 			return;
+		
+		doStaticSanityChecks();
 
 		boardSanityCheck(board);
-
-		// TODO: pull out these static checks to a static assertion method
-
-		assert (MILLIS_TIME_BUFFER >= 0);
-
-		assert (MILLIS_TIME_FINAL >= 0);
-
-		assert (ESTIMATION_WEIGHT >= 0);
-		assert (ESTIMATION_WEIGHT <= 1);
-
-		assert (NUM_THREADS >= 1);
 
 		// Ensure things that shouldn't be null, aren't
 		assert (cardsRemainingInDeck != null);
