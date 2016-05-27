@@ -27,12 +27,11 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-// TODO: Auto-generated Javadoc
-// XXX: This shouldn't work / this is a bandaid patch.
-// BUG: Fix me please
-// TODO: I should look at this when I have time, but not urgent
-// WISH: If I had infinite time I'd do this, but I don't and my time is
-//       probably better spent elsewhere. (Lower priority TODO, give or take)
+// xxx: This shouldn't work / this is a bandaid patch.
+// bug: Fix me please
+// todo: I should look at this when I have time, but not urgent
+// wish: If I had infinite time I'd do this, but I don't and my time is
+//       probably better spent elsewhere. (Lower priority todo, give or take)
 
 // Poker squares:
 // You have a shuffled deck of cards and a 5x5 grid.
@@ -112,15 +111,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 
 	public static final boolean ASSERTIONS_ENABLED = areAssertionsEnabled();
 
-	static final JHarrisBPANNE estimator;
-	
-	static {
-		try {
-			estimator = JHarrisBPANNE.loadFromFile("JHarrisTDEstimator.dat");
-		} catch (Exception e) {
-			throw new RuntimeException(e); // bleh.
-		}
-	}
+	private final JHarrisBPANNE estimator;
 
 	// Number of cards played on the board so far.
 	// Note: in the middle of getPlay it's generally one off, as is
@@ -159,14 +150,11 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	// Probably overkill, though.
 	private Card[/* 5 */][/* 5 */] board;
 
-	/**
-	 * Instantiates a new JHarrisTDPlayerMulti
-	 * 
-	 * Only used for debugging, really.
-	 */
-	public JHarrisTDPlayerMulti() {
+	public JHarrisTDPlayerMulti() throws ClassNotFoundException, ClassCastException, IOException {
 		// WISH: log instead?
 		System.out.println(getName() + " using " + NUM_THREADS + " threads.");
+
+		estimator = JHarrisBPANNE.loadFromFile("JHarrisTDEstimator.dat");
 	}
 
 	/**
@@ -469,6 +457,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	/**
 	 * Gets the score of a game played from the passed-in board state to the
 	 * end.
+	 * @param estimator2 
 	 *
 	 * @param Card[5][5]
 	 *            board the board to play the game on
@@ -483,7 +472,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	 *            How many cards have been played
 	 * @return the score of the game played to end
 	 */
-	private static int getValueOfGamePlayedToEnd(Card[/* 5 */][/* 5 */] board, Card[/* 52 */] cardsRemainingInDeck,
+	private static int getValueOfGamePlayedToEnd(JHarrisBPANNE estimator, Card[/* 5 */][/* 5 */] board, Card[/* 52 */] cardsRemainingInDeck,
 			int[/* 25 */][/* x,y */] freePositions, int numCardsRemaining, int numCardsPlayed) {
 		// Recursive
 
@@ -537,7 +526,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		// best
 		// play...
 
-		int toRet = getValueOfGamePlayedToEnd(board, cardsRemainingInDeck, freePositions, numCardsRemaining - 1,
+		int toRet = getValueOfGamePlayedToEnd(estimator, board, cardsRemainingInDeck, freePositions, numCardsRemaining - 1,
 				numCardsPlayed + 1); // Recurse!
 		undoBoardPlayAndFreePos(freePositions, board, bestIndex, numCardsRemaining - 1); // Undo
 		// said
@@ -853,12 +842,15 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	 * 
 	 * @param args
 	 *            not used
+	 * @throws IOException 
+	 * @throws ClassCastException 
+	 * @throws ClassNotFoundException 
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args) throws ClassNotFoundException, ClassCastException, IOException {
 		long score = 0;
 		for (long i = 1;; i++) { // optimistic!
 			JHarrisTDPlayerMulti player = new JHarrisTDPlayerMulti();
-			PokerSquares ps = new PokerSquares(player, estimator.pointSystem);
+			PokerSquares ps = new PokerSquares(player, player.estimator.pointSystem);
 			int playScore = ps.play();
 			score += playScore;
 			System.out.println(String.format("%16d%16d%16f", i, playScore, score / (double) i));
@@ -873,6 +865,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		private int numCardsPlayed;
 		private Card[] cardsRemainingInDeck;
 		private int[][] freePositions;
+		private JHarrisBPANNE estimator;
 
 		// The card that we have to play currently.
 		private Card card;
@@ -915,6 +908,8 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 			this.card = card;
 
 			this.cardsRemainingInDeck = play.cardsRemainingInDeck.clone();
+			
+			this.estimator = play.estimator;
 		}
 
 		/**
@@ -955,7 +950,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 					}
 
 					doBoardPlayAndFreePos(freePositions, board, card, i, numCardsRemaining - 1);
-					int value = getValueOfGamePlayedToEnd(board, cardsRemainingInDeck, freePositions,
+					int value = getValueOfGamePlayedToEnd(estimator, board, cardsRemainingInDeck, freePositions,
 							numCardsRemaining - 1, numCardsPlayed + 1); // Play
 																		// a
 																		// game
