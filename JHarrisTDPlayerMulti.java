@@ -109,7 +109,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 
 	private static final CompletionService<long[][]> completionService = new ExecutorCompletionService<long[][]>(pool);
 
-	public static final boolean ASSERTIONS_ENABLED = areAssertionsEnabled();
+	public static final boolean ASSERTIONS_ENABLED = JHarrisTDPlayerMulti.class.desiredAssertionStatus();
 
 	private final JHarrisBPANNE estimator;
 
@@ -372,24 +372,6 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		// No need for defensive copy here...
 		// return xyPlay.clone();
 		return xyPlay;
-	}
-
-	/**
-	 * Check if assertions are enabled.
-	 * 
-	 * Used for expensive "setup" for assertions
-	 * 
-	 * TODO: Find a better way to check this.
-	 *
-	 * @return true, if assertions are enabled
-	 */
-	public static boolean areAssertionsEnabled() {
-		boolean checkAssert = false;
-		assert checkAssert = true; // Side effect is intentional!
-		if (checkAssert)
-			System.out.println("Assertions are enabled"); // WISH: Proper
-															// logging
-		return checkAssert;
 	}
 
 	/**
