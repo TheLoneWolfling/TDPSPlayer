@@ -148,20 +148,18 @@ public class JHarrisBPANNE implements Serializable {
 
 	@Override
 	public String toString() {
-		// TODO: change over to StringBuilder
-		String toRet = "";
-		toRet += "BPANNE[\n";
-		for (int layer = 0; layer < getNumLayers(); layer++) {
+		StringBuilder toRet = new StringBuilder("BPANNE[\n");
+		for (int layer = 0; layer < getNumLayers() - 1; layer++) {
 			for (int prevNode = 0; prevNode < getLayerSizeWithBias(layer); prevNode++) {
 				for (int nextNode = 0; nextNode < getLayerSizeWithBias(layer + 1); nextNode++) {
-					toRet += weights[layer][prevNode][nextNode] + " ";
+					toRet.append(weights[layer][prevNode][nextNode] + " ");
 				}
-				toRet += "\n";
+				toRet.append("\n");
 			}
-			toRet += "\n";
+			toRet.append("\n");
 		}
-		toRet += "]\n";
-		return toRet;
+		toRet.append("]\n");
+		return toRet.toString();
 	}
 
 	public void saveToFile(String filename) throws IOException {
