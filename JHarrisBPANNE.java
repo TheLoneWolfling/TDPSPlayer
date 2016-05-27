@@ -235,4 +235,74 @@ public class JHarrisBPANNE implements Serializable {
 		}
 	}
 
+	/**
+	 * Gets the estimated mean score for a board.
+	 * 
+	 * Warning: this function cannot change behavior without a full training
+	 * run. (Optimizations or sanity checks are fine; modifications of the
+	 * inputs used are not.)
+	 *
+	 * @param Card[5][5]
+	 *            board the board to estimate the score of
+	 * @return the estimated mean score of the board
+	 */
+	public double getValueForBoardPos(Card[/* 5 */][/* 5 */] board) {
+
+		JHarrisTDPlayerMulti.boardSanityCheck(board);
+
+		// Current inputs for network:
+		// isNull(x, y) -> 5x5=25
+		// rank(x,y) -> 5x5=25
+		// suit(x,y) -> 5x5=25
+		// currentScore(board) -> 1=1
+
+		// Some other possible inputs for the network:
+		// cardId(x,y) -> 5x5=25
+		// isSuit(x,y,suit) -> 5x5x4=100
+		// isRank(x,y,rank) -> 5x5x13=650
+		// minScore(rowOrCol) -> 5+5=10
+		// maxScore(rowOrCol) -> 5+5=10
+		// avgScoreGivenCardsRemaining(rowOrCol) -> 5+5=10
+		// canBeScoredAs(rowOrCol, handType) -> (5+5)*10=100
+		// numFree(board) -> 1=1
+		// numPlayed(board) -> 1=1
+		// minScore(board) -> 1=1
+		// maxScore(board) -> 1=1
+		// avgScore(board) -> 1=1
+		// isCardPlayed(card) -> 52=52
+		// isCardLeft(card) -> 52=52
+
+		// With associated scaling / whitening?
+
+		// WISH: use an auto-encoder to figure out optimum inputs then use said
+		// auto-encoder encoder portion as the first couple layers of the
+		// estimator.
+
+		// WISH: run a meta-optimizer over the above to figure out optimum
+		// inputs
+
+		double[] input = new double[25 * (1 + 1 + 1) + 1];
+		// Could be a List, but Java lack-of-optimizations makes it *slow*.
+		// Especially with boxing / unboxing.
+
+		int ind = 0;
+		int numFree = 0;
+		for (int i = 0; i < 25; i++) {
+			Card c = board[i / 5][i % 5];
+			input[ind++] = c == null ? 0 : 1;
+			input[ind++] = c == null ? 0 : c.getSuit() / 4.0;
+			input[ind++] = c == null ? 0 : c.getRank() / 13.0;
+			if (c == null)
+				numFree += 1;
+		}
+		int boardScore = pointSystem.getScore(board);
+		if (numFree == 0)
+			return boardScore;
+		input[ind++] = boardScore / (double) estimatorScale;
+
+		assert (ind == input.length);
+
+		return doEstimate(input) * (double) estimatorScale;
+	}
+
 }
