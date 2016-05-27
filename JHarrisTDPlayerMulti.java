@@ -616,15 +616,12 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	 * @return the index of the card in the deck
 	 */
 	private static int getIndexOfCardInDeck(Card card, Card[] cardsRemainingInDeck) {
-		int id = card.getCardId();
-		// Might be slightly faster to just check reference equality,
-		// but I don't know if it's guaranteed that there is exactly one card
-		// with a given rank/suit floating around.
 
-		// TODO: check if cardA == cardB is sound.
-		for (int i = 0; i < cardsRemainingInDeck.length; i++)
-			if (cardsRemainingInDeck[i].getCardId() == id)
+		for (int i = 0; i < cardsRemainingInDeck.length; i++) {
+			assert ((card == cardsRemainingInDeck[i]) == card.equals(cardsRemainingInDeck[i]));
+			if (card == cardsRemainingInDeck[i])
 				return i;
+		}
 		assert (false);
 		// Shouldn't happen, but if we're here it's better to potentially pick
 		// any points we *can* get.
