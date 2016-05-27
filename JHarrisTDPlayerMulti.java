@@ -899,69 +899,54 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		 */
 		@Override
 		public long[][] call() {
+			long[] monteCarloCounts = new long[numCardsRemaining];
+			long[] monteCarloSums = new long[numCardsRemaining];
+			long[][] toRet = { monteCarloCounts, monteCarloSums };
 			try {
-				// Ensure that there are no weird do/undo errors...
-				Card[][] temp = null;
-				// ASSERTIONS_ENABLED is a final small primitive, so this is fine.
-				if (ASSERTIONS_ENABLED) {
-					temp = board.clone();
-					for (int ii = 0; ii < 5; ii++)
-						temp[ii] = board[ii].clone();
-				}
 
-				long[] monteCarloCounts = new long[numCardsRemaining];
-				long[] monteCarloSums = new long[numCardsRemaining];
-
-				// Basic idea: shuffle the deck. Then play a game with the card
-				// played in each position.
-				// Then repeat.
-
-				// The inner loop is implicit.
-				// TODO: look at replacing this loop with while(True) { for (i
-				// in range(numCardsRemaining) {if timeout break both loops}}
-
-				int i = numCardsRemaining;
-				while (System.currentTimeMillis() < endTime) {
-					if (i == numCardsRemaining) {
-						i = 0;
-						// Just shuffle the cards that haven't already been
-						// played in the "real" game
-						Collections.shuffle(Arrays.asList(cardsRemainingInDeck).subList(0, 51 - numCardsPlayed));
-					}
-
-					doBoardPlayAndFreePos(freePositions, board, card, i, numCardsRemaining - 1);
-					int value = getValueOfGamePlayedToEnd(estimator, board, cardsRemainingInDeck, freePositions,
-							numCardsRemaining - 1, numCardsPlayed + 1); // Play
-																		// a
-																		// game
-					monteCarloSums[i] += value;
-					monteCarloCounts[i] += 1;
-					undoBoardPlayAndFreePos(card, freePositions, board, i, numCardsRemaining - 1);
-					assert (Arrays.deepEquals(board, temp));
-
-					i += 1;
-				}
-				return new long[][] { monteCarloCounts, monteCarloSums }; // So
-																			// much
-																			// garbage...
+				doMonteCarloSims(monteCarloCounts, monteCarloSums);
+				
 			} catch (Exception ex) {
+				// WISH: Logging.
 				System.err.println(ex);
 				if (ASSERTIONS_ENABLED) {
 					Thread t = Thread.currentThread();
 					t.getUncaughtExceptionHandler().uncaughtException(t, ex);
+					assert(false);
 					return null;
 				}
-				return new long[][] { new long[numCardsRemaining], new long[numCardsRemaining] }; // i.e.
-																									// just
-																									// act
-																									// as
-																									// though
-																									// we
-																									// didn't
-																									// do
-																									// anything
-																									// at
-																									// all
+			}
+			return toRet;
+		}
+
+		private void doMonteCarloSims(long[] monteCarloCounts, long[] monteCarloSums) {
+			// Basic idea: shuffle the deck. Then play a game with the card
+			// played in each position.
+			// Then repeat.
+			
+			// Ensure that there are no weird do/undo errors...
+			Card[][] boardClone = null;
+			// ASSERTIONS_ENABLED is a final small primitive, so this is fine.
+			if (ASSERTIONS_ENABLED) {
+				boardClone = board.clone();
+				for (int ii = 0; ii < 5; ii++)
+					boardClone[ii] = board[ii].clone();
+			}
+			
+			while (true) {
+				Collections.shuffle(Arrays.asList(cardsRemainingInDeck).subList(0, 51 - numCardsPlayed));
+				
+				for (int i = 0; i < numCardsRemaining; i++) {
+					doBoardPlayAndFreePos(freePositions, board, card, i, numCardsRemaining - 1);
+					int value = getValueOfGamePlayedToEnd(estimator, board, cardsRemainingInDeck, freePositions,
+							numCardsRemaining - 1, numCardsPlayed + 1); // Play a game
+					monteCarloSums[i] += value;
+					monteCarloCounts[i] += 1;
+					undoBoardPlayAndFreePos(card, freePositions, board, i, numCardsRemaining - 1);
+					assert (Arrays.deepEquals(board, boardClone));
+					if (System.currentTimeMillis() >= endTime)
+						return;
+				}
 			}
 		}
 
