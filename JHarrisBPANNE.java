@@ -13,6 +13,16 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * This is a naive-backpropagation-based artificial neural network.
+ * 
+ * WISH: use a matrix library instead of explicit loops.
+ * 
+ * (The professor did not want any external libraries used,
+ *  and it would be more complexity to write a matrix library
+ *  and use it once than just to use explicit loops.)
+ */
+
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -21,75 +31,105 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Arrays;
 
+import jdk.nashorn.internal.runtime.JSONFunctions;
+
 
 // BPANNE: BackPropagation Artifical Neural Network Estimator
 
-// The version included in the hand-in is "neutered" - it has had the learning infastructure
-// removed to make it faster.
+// The version included here is "neutered" - it has had the learning infrastructure
+// removed
 
 public class JHarrisBPANNE implements Serializable {
 	
 	private static final long serialVersionUID = 2L;
+	
 	final double[/*earlier layer*/][/*earlier layer node*/][/*later layer node*/] weights;
 	
-	final double[/*layer*/][/*node*/] cVals;
-	
-	final int[] topology;
+	final int[/*# layers*/] topology; // # nodes in each layer - input layer == layer 0. Includes bias nodes.
 
- 	private JHarrisBPANNE() { // Needed as otherwise this cannot be compiled without BPANNEOld2
+ 	private JHarrisBPANNE() { // Final variables and serializability don't mix well.
 		weights = null;
-		cVals = null;
 		topology = null;
 	}
+ 	
+ 	private final int getNumLayers() {
+ 		return topology.length;
+ 	}
+ 	
+ 	private final int getOutputLayer() {
+ 		return getNumLayers() - 1;
+ 	}
+ 	
+ 	private final int getLayerSizeWithBias(int layer) {
+ 		return topology[layer];
+ 	}
+ 	
+ 	private final int getLayerSizeNoBias(int layer) {
+ 		if (layer == getOutputLayer()) // Output node(s) have no bias node
+ 										  // as there is no next layer for the bias node to connect to!
+ 			return topology[layer];
+ 		return topology[layer] - 1;
+ 	}
 	
-	
-// 	public JHarrisBPANNE(BPANNEOld2 o) {
-// 		this.topology = Arrays.copyOf(o.topology, o.topology.length);
-// 		weights = new double[topology.length - 1][][];
-// 		for (int i = 0; i < weights.length; i++) {
-// 			weights[i] = new double[topology[i]][];
-// 			for (int j = 0; j < weights[i].length; j++) {
-// 				weights[i][j] = Arrays.copyOf(o.weights[i][j], topology[i + 1]);
-// 			}
-// 		}
-// 		cVals = Arrays.copyOf(o.cVals, topology.length);
-// 	}
-	
-	double doEstimate(double[] inputs) {
-		assert (inputs.length == topology[0] - 1);
-		final double[/*layer*/][/*node*/] cValsTemp = new double[cVals.length][];
-		for (int i = 0; i < cVals.length; i++)
-			cValsTemp[i] = cVals[i].clone();
+ 	double doEstimate(double[] inputs) {
+ 		
+ 		// There are two ways to do bias values for neural network nodes
+ 		// Either have separate bias values
+ 		// Or have "nodes" that are never updated with a fixed activation of 1
+ 		// I take the second route, as it is easier when one is not using a matrix library.
+ 		
+		assert (inputs.length == getLayerSizeNoBias(0));
 		
-		for (int i = 0; i < inputs.length; i++) {
-			cValsTemp[0][i] = inputs[i];
+		final double[/*layer*/][/*node*/] nodeActivations = new double[getNumLayers()][];
+		
+		// If we were learning we'd hang on to nodeActivations for the backprop phase.
+		
+		for (int i = 0; i < getNumLayers(); i++) {
+			nodeActivations[i] = new double[getLayerSizeWithBias(i)];
+			
+			nodeActivations[i][getLayerSizeWithBias(i) - 1] = 1; // Bias nodes set to activation of 1
 		}
 		
-		cValsTemp[0][topology[0] - 1] = 1;
-		
-		for (int layer = 1; layer < topology.length; layer++) {
-			for (int curNode = 0; curNode < topology[layer] - (layer == topology.length - 1 ? 0 : 1) /* bias*/; curNode++) {
+		for (int i = 0; i < getLayerSizeNoBias(0); i++) { // Could use System.arraycopy here I suppose
+			nodeActivations[0][i] = inputs[i];    // Frankly, I find this clearer.
+			// Note that this leaves the bias node intact.
+		}
+		// For each layer...
+		for (int nextLayer = 1; nextLayer < getNumLayers(); nextLayer++) {
+			int prevLayer = nextLayer - 1;
+			// For each node in the layer...
+			for (int nextNode = 0; nextNode < getLayerSizeNoBias(nextLayer); nextNode++) {
+				// Take a weighted sum of the inputs to the node...
 				double sum = 0;
-				for (int prevNode = 0; prevNode < topology[layer - 1]; prevNode++) {
-					sum += weights[layer - 1][prevNode][curNode] * cValsTemp[layer - 1][prevNode];
+				for (int prevNode = 0; prevNode < getLayerSizeWithBias(nextLayer - 1); prevNode++) {
+					sum += weights[prevLayer][prevNode][nextNode] * nodeActivations[prevLayer][prevNode];
 				}
-				cValsTemp[layer][curNode] = fwdFunc(sum);
+				//Run it through the activation function...
+				nodeActivations[nextLayer][nextNode] = fwdFunc(sum);
+				//And assign it to the activation of said node.
 			}
 		}
-		return cValsTemp[cValsTemp.length - 1][0];
+		// WISH: have a function be able to return, say double...
+		// similar to varargs as the inputs of a function.
+		return nodeActivations[nodeActivations.length - 1][0];
 	}
 
 	private double fwdFunc(double in) {
+		// I tried other functions, notably
+		// x / (abs(x) + 1)
+		// They weren't enough faster to compensate for
+		// them being slower.
 		return Math.tanh(in);
 	}
 
 	@Override
 	public String toString() {
+		// TODO: change over to StringBuilder
 		String toRet = "";
 		toRet += "BPANNE[\n";
-		for (int layer = 0; layer < topology.length-1; layer++) {
-			for (int prevNode = 0; prevNode < topology[layer]; prevNode++) {
-				for (int nextNode = 0; nextNode < topology[layer + 1]; nextNode++) {
+		for (int layer = 0; layer < getNumLayers(); layer++) {
+			for (int prevNode = 0; prevNode < getLayerSizeWithBias(layer); prevNode++) {
+				for (int nextNode = 0; nextNode < getLayerSizeWithBias(layer + 1); nextNode++) {
 					toRet += weights[layer][prevNode][nextNode] + " ";
 				}
 				toRet += "\n";
@@ -100,52 +140,23 @@ public class JHarrisBPANNE implements Serializable {
 		return toRet;
 	}
 	
+	public void saveToFile(String filename) throws IOException {
+		saveToFile(this, filename);
+	}
 	
-	
-// 	private static JHarrisBPANNE loadEstimatorFromFile(String filename) {
-// 		// Blehh...
-// 		
-// 		FileInputStream fileIn = null;
-// 		ObjectInputStream in = null;
-// 		try {
-// 			fileIn = new FileInputStream(filename);
-// 			in = new ObjectInputStream(fileIn);
-// 			BPANNEOld2 toRet = (BPANNEOld2) in.readObject();
-// 			return new JHarrisBPANNE(toRet);
-// 		} catch (IOException | ClassNotFoundException e) {
-// 			e.printStackTrace();
-// 			throw new RuntimeException("Cannot find estimator?");
-// 		} finally {
-// 			try {
-// 				if (in != null)
-// 					in.close();
-// 			} catch (IOException e) {
-// 				e.printStackTrace();
-// 			}
-// 			try {
-// 				if (fileIn != null)
-// 					fileIn.close();
-// 			} catch (IOException e) {
-// 				e.printStackTrace();
-// 			}
-// 		}
-// 	}
-	
-// 	public static void saveToFile(Serializable s, String filename) {
-// 		try
-// 	      {
-// 	         FileOutputStream fileOut = new FileOutputStream(filename);
-// 	         ObjectOutputStream out = new ObjectOutputStream(fileOut);
-// 	         out.writeObject(s);
-// 	         out.close();
-// 	         fileOut.close();
-// 	      }catch(IOException i)
-// 	      {
-// 	          i.printStackTrace();
-// 	      }
-// 	}
+ 	public static void saveToFile(Serializable s, String filename) throws IOException {
+ 		FileOutputStream fileOut = null;
+		ObjectOutputStream out = null;
+ 		try {
+ 			fileOut = new FileOutputStream(filename);
+ 			out = new ObjectOutputStream(fileOut);
+ 			out.writeObject(s);
+ 		} finally {
+ 			if (out != null)
+				out.close();
+ 			if (fileOut != null)
+ 				fileOut.close();
+ 		}
+ 	}
 
-// 	public static void main(String[] args) {
-// 		saveToFile(loadEstimatorFromFile("JHarrisTDEstimator2.dat"), "out.dat");
-// 	}
 }

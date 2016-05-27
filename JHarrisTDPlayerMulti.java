@@ -207,7 +207,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	 *            filename to load estimator from
 	 * @return the JHarrisBPANNE that was previously written to said file
 	 */
-	private static JHarrisBPANNE loadEstimatorFromFile(String filename) {
+	static JHarrisBPANNE loadEstimatorFromFile(String filename) {
 		// Blehh...
 		// My kingdom for a with statement!
 
