@@ -216,6 +216,8 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	 */
 	@Override
 	public int[/* 2 */] getPlay(Card card, long millisRemaining) {
+		// Would move this inside the if block, below, but the sanity check
+		// can take a long enough time that I don't want to risk timeouts.
 		long startTime = System.currentTimeMillis();
 
 		doSanityCheck();
@@ -259,10 +261,6 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		// "Should".
 
 		if (numCardsRemaining > 1) { // Last card played is trivial.
-
-			// TODO: could probably move startTime's declaration inside this
-			// block, which would
-			// shave a (tiny) amount of time off of the first / last plays.
 
 			// Calculate how long we have per play...
 
@@ -622,6 +620,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 			if (card == cardsRemainingInDeck[i])
 				return i;
 		}
+		
 		assert (false);
 		// Shouldn't happen, but if we're here it's better to potentially pick
 		// any points we *can* get.
