@@ -375,9 +375,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 					// Only happens if we're *really* pressed for time...
 					value = estimatedValues[j];
 				else
-					// TODO: replace with lerp function?
-					value = estimatedValues[j] * ESTIMATION_WEIGHT
-							+ monteCarloSums[j] / (double) monteCarloCounts[j] * (1 - ESTIMATION_WEIGHT);
+					value = lerp(monteCarloSums[j] / (double) monteCarloCounts[j], estimatedValues[j], ESTIMATION_WEIGHT);
 
 				// Had fancy tie-breaking, but realized that it never came up
 				// due to the estimated values being ~unique.
@@ -401,6 +399,24 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		// No need for defensive copy here...
 		// return xyPlay.clone();
 		return xyPlay;
+	}
+	
+	/**
+	 * Lerp between a and b. sel=0 -> a, sel=1 -> b, intermediate values -> linear interpolation between a and b.
+	 *
+	 * @param a
+	 * @param b
+	 * @param sel
+	 */
+	public static double lerp(double a, double b, double sel) {
+		assert sel >= 0;
+		assert sel <= 1;
+		
+		double toRet = a * (1-sel) + b*(sel);
+		
+		assert toRet >= Math.min(a,  b);
+		assert toRet <= Math.max(a,  b);
+		return toRet;
 	}
 
 	/**
