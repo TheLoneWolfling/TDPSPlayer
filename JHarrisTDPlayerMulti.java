@@ -458,11 +458,11 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 			int[/* 25 */][/* x,y */] freePositions, int numCardsRemaining, int numCardsPlayed) {
 		// Recursive
 
-		doSanityCheck(board, cardsRemainingInDeck, freePositions, numCardsRemaining, numCardsPlayed);
-
 		// Base case:
 		if (numCardsRemaining == 0)
 			return estimator.pointSystem.getScore(board);
+
+		doSanityCheck(board, cardsRemainingInDeck, freePositions, numCardsRemaining, numCardsPlayed);
 
 		// If assertions are enabled, make a copy of the board to check that the
 		// do / undo setup is sound
@@ -478,7 +478,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		// main getPlay function (just after starting the Monte Carlo threads)
 		int bestIndex = 0;
 		double best = Double.NEGATIVE_INFINITY;
-		Card card = cardsRemainingInDeck[numCardsPlayed]; // Grab next card...
+		Card card = cardsRemainingInDeck[51 - numCardsPlayed]; // Grab next card...
 		for (int j = 0; j < numCardsRemaining; j++) {
 			doBoardPlay(board, card, freePositions[j]); // Try putting it in a
 														// position...
