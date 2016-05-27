@@ -150,14 +150,11 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	// Probably overkill, though.
 	private Card[/* 5 */][/* 5 */] board;
 
-	// TODO: pull into JHarrisBPANNE
-	private static final PokerSquaresPointSystem POINT_SYSTEM = PokerSquaresPointSystem.getAmericanPointSystem();
-
 	// Should be 1000
 	// WISH: change to offset and scale according to *actual* min/max scores
 	// possible.
 	// But there is no easy way to figure out either of those.
-	private static final int ESTIMATOR_SCALE = normalizeMinMax(POINT_SYSTEM.getScoreTable());
+	private static final int ESTIMATOR_SCALE = normalizeMinMax(estimator.pointSystem.getScoreTable());
 
 	/**
 	 * Returns the normalization factor for a given hand point table
@@ -270,7 +267,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		// As such, this method should not do anything.
 
 		// Check that it's setting it to the American point system only.
-		assert (Arrays.equals(system.getScoreTable(), POINT_SYSTEM.getScoreTable()));
+		assert (Arrays.equals(system.getScoreTable(), estimator.pointSystem.getScoreTable()));
 
 		// ...and yet it does. Programming in a nutshell.
 	}
@@ -552,7 +549,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 			if (c == null)
 				numFree += 1;
 		}
-		int boardScore = POINT_SYSTEM.getScore(board);
+		int boardScore = estimator.pointSystem.getScore(board);
 		if (numFree == 0)
 			return boardScore;
 		input[ind++] = boardScore / (double) ESTIMATOR_SCALE;
@@ -647,7 +644,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 
 		// Base case:
 		if (numCardsRemaining == 0)
-			return POINT_SYSTEM.getScore(board);
+			return estimator.pointSystem.getScore(board);
 
 		// If assertions are enabled, make a copy of the board to check that the
 		// do / undo setup is sound
@@ -1014,7 +1011,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		long score = 0;
 		for (long i = 1;; i++) { // optimistic!
 			JHarrisTDPlayerMulti player = new JHarrisTDPlayerMulti();
-			PokerSquares ps = new PokerSquares(player, POINT_SYSTEM);
+			PokerSquares ps = new PokerSquares(player, estimator.pointSystem);
 			int playScore = ps.play();
 			score += playScore;
 			System.out.println(String.format("%16d%16d%16f", i, playScore, score / (double) i));
