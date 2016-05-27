@@ -112,7 +112,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 
 	public static final boolean ASSERTIONS_ENABLED = areAssertionsEnabled();
 
-	private static final JHarrisBPANNE estimator;
+	static final JHarrisBPANNE estimator;
 	
 	static {
 		try {
@@ -158,48 +158,6 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	// WISH: pull out to separate class with proper getter / setters
 	// Probably overkill, though.
 	private Card[/* 5 */][/* 5 */] board;
-
-	// Should be 1000
-	// WISH: change to offset and scale according to *actual* min/max scores
-	// possible.
-	// But there is no easy way to figure out either of those.
-	private static final int ESTIMATOR_SCALE = normalizeMinMax(estimator.pointSystem.getScoreTable());
-
-	/**
-	 * Returns the normalization factor for a given hand point table
-	 * 
-	 * 
-	 * Must be the case that -ESTIMATOR_SCALE <= minimum achievable score <=
-	 * maximum achievable score <= ESTIMATOR_SCALE currently See ESTIMATOR_SCALE
-	 * comment
-	 * 
-	 * Note that this must be the same between the BPANNE training run and the
-	 * scoring run!
-	 *
-	 * IIRC, minimum / maximum actual scores are 0 and 725, respectively. WISH:
-	 * do a training run with better scale and offset. So then scale would be
-	 * ceil((725-0)/2) = 363, and offset would be 362 or 363. Probably 363, so
-	 * the actual and predicted minimums coincide. TODO: pull into JHarrisBPANNE
-	 *
-	 * @param pointTable[10]
-	 *            a table containing points for [high card, one pair, ...]
-	 * @return scale an integer such that -scale <= min score <= max score <=
-	 *         scale
-	 */
-	//
-	private static int normalizeMinMax(int[] pointTable) {
-		// Scales points so they are within [-1,1], inclusive
-		int min = Integer.MAX_VALUE;
-		int max = Integer.MIN_VALUE;
-		for (int entry : pointTable) {
-			min = Math.min(min, entry);
-			max = Math.max(max, entry);
-		}
-		final int numRowsAndCols = 5 + 5;
-		// Currently assumes that offset=0, and so the achievable values are
-		// between scale*-10 and scale*10
-		return Math.max(Math.abs(min), Math.abs(max)) * numRowsAndCols;
-	}
 
 	/**
 	 * Instantiates a new JHarrisTDPlayerMulti
@@ -513,11 +471,11 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		int boardScore = estimator.pointSystem.getScore(board);
 		if (numFree == 0)
 			return boardScore;
-		input[ind++] = boardScore / (double) ESTIMATOR_SCALE;
+		input[ind++] = boardScore / (double) estimator.estimatorScale;
 
 		assert (ind == input.length);
 
-		return estimator.doEstimate(input) * (double) ESTIMATOR_SCALE;
+		return estimator.doEstimate(input) * (double) estimator.estimatorScale;
 	}
 
 	/**

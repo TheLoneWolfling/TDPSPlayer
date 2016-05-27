@@ -48,12 +48,19 @@ public class JHarrisBPANNE implements Serializable {
 
 	final int[/* # layers */] topology; // # nodes in each layer - input layer
 										// == layer 0. Includes bias nodes.
+
+	// Should be 1000
+	// WISH: change to offset and scale according to *actual* min/max scores
+	// possible.
+	// But there is no easy way to figure out either of those.
+	final int estimatorScale;
 	
 	private JHarrisBPANNE(JHarrisBPANNE b) { // constructor for deserialization
         // copy the non-transient fields
 		this.weights = b.weights;
 		this.topology = b.topology;
 		this.pointSystem = (b.pointSystem == null) ? PokerSquaresPointSystem.getAmericanPointSystem() : b.pointSystem;
+		this.estimatorScale = (b.estimatorScale == 0) ? normalizeMinMax(pointSystem.getScoreTable()) : b.estimatorScale;
     }
 
     private Object readResolve() {
@@ -159,6 +166,42 @@ public class JHarrisBPANNE implements Serializable {
 
 	public void saveToFile(String filename) throws IOException {
 		saveToFile(this, filename);
+	}
+
+	/**
+	 * Returns the normalization factor for a given hand point table
+	 * 
+	 * 
+	 * Must be the case that -ESTIMATOR_SCALE <= minimum achievable score <=
+	 * maximum achievable score <= ESTIMATOR_SCALE currently See ESTIMATOR_SCALE
+	 * comment
+	 * 
+	 * Note that this must be the same between the BPANNE training run and the
+	 * scoring run!
+	 *
+	 * IIRC, minimum / maximum actual scores are 0 and 725, respectively. WISH:
+	 * do a training run with better scale and offset. So then scale would be
+	 * ceil((725-0)/2) = 363, and offset would be 362 or 363. Probably 363, so
+	 * the actual and predicted minimums coincide. TODO: pull into JHarrisBPANNE
+	 *
+	 * @param pointTable[10]
+	 *            a table containing points for [high card, one pair, ...]
+	 * @return scale an integer such that -scale <= min score <= max score <=
+	 *         scale
+	 */
+	//
+	static int normalizeMinMax(int[] pointTable) {
+		// Scales points so they are within [-1,1], inclusive
+		int min = Integer.MAX_VALUE;
+		int max = Integer.MIN_VALUE;
+		for (int entry : pointTable) {
+			min = Math.min(min, entry);
+			max = Math.max(max, entry);
+		}
+		final int numRowsAndCols = 5 + 5;
+		// Currently assumes that offset=0, and so the achievable values are
+		// between scale*-10 and scale*10
+		return Math.max(Math.abs(min), Math.abs(max)) * numRowsAndCols;
 	}
 
 	public static void saveToFile(Serializable s, String filename) throws IOException {
