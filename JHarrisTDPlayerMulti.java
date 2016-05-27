@@ -311,7 +311,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 			for (int i = 0; i < numCardsRemaining; i++) {
 				doBoardPlay(board, card, freePositions[i]);
 				estimatedValues[i] = estimator.getValueForBoardPos(board);
-				undoBoardPlay(board, freePositions[i]);
+				undoBoardPlay(card, board, freePositions[i]);
 				assert (Arrays.deepEquals(board, temp));
 			}
 
@@ -382,7 +382,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	 * @param int[2] pos 
 	 * 				the position to undo the play on
 	 */
-	private static void undoBoardPlay(Card[/* 5 */][/* 5 */] board, int[/* 2 */] pos) {
+	private static void undoBoardPlay(Card old, Card[/* 5 */][/* 5 */] board, int[/* 2 */] pos) {
 
 		boardSanityCheck(board);
 
@@ -397,6 +397,8 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		assert (pos[1] < 5);
 
 		assert (board[pos[0]][pos[1]] != null);
+
+		assert (board[pos[0]][pos[1]] == old);
 
 		board[pos[0]][pos[1]] = null;
 	}
@@ -482,7 +484,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 														// position...
 			double value = estimator.getValueForBoardPos(board); // Get the estimated
 														// value...
-			undoBoardPlay(board, freePositions[j]); // Remove the card from said
+			undoBoardPlay(card, board, freePositions[j]); // Remove the card from said
 													// position
 
 			assert (Arrays.deepEquals(board, temp)); // Check that we haven't
@@ -508,7 +510,9 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 
 		int toRet = getValueOfGamePlayedToEnd(estimator, board, cardsRemainingInDeck, freePositions, numCardsRemaining - 1,
 				numCardsPlayed + 1); // Recurse!
-		undoBoardPlayAndFreePos(freePositions, board, bestIndex, numCardsRemaining - 1); // Undo
+
+		
+		undoBoardPlayAndFreePos(card, freePositions, board, bestIndex, numCardsRemaining - 1); // Undo
 		// said
 		// play...
 
@@ -555,10 +559,10 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	 * @param numCardsRemaining
 	 *            How many cards are left to play
 	 */
-	private static void undoBoardPlayAndFreePos(int[][] freePositions, Card[][] board, int index, int numCardsLeft) {
+	private static void undoBoardPlayAndFreePos(Card old, int[][] freePositions, Card[][] board, int index, int numCardsLeft) {
 		swap(freePositions, index, numCardsLeft); // Remove the card from the
 													// board...
-		undoBoardPlay(board, freePositions[index]); // And record the play
+		undoBoardPlay(old, board, freePositions[index]); // And record the play
 													// position as free again
 	}
 
@@ -932,7 +936,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 																		// game
 					monteCarloSums[i] += value;
 					monteCarloCounts[i] += 1;
-					undoBoardPlayAndFreePos(freePositions, board, i, numCardsRemaining - 1);
+					undoBoardPlayAndFreePos(card, freePositions, board, i, numCardsRemaining - 1);
 					assert (Arrays.deepEquals(board, temp));
 
 					i += 1;
