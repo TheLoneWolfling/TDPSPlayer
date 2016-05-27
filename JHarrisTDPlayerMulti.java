@@ -15,6 +15,7 @@
  */
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.Arrays;
@@ -105,13 +106,21 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	// TODO: figure out optimum when including hyperthreading
 	private static final int NUM_THREADS = Runtime.getRuntime().availableProcessors();
 
-	private static final JHarrisBPANNE estimator = loadEstimatorFromFile("JHarrisTDEstimator.dat");
-
 	private static final ExecutorService pool = Executors.newFixedThreadPool(NUM_THREADS);
 
 	private static final CompletionService<long[][]> completionService = new ExecutorCompletionService<long[][]>(pool);
 
 	public static final boolean ASSERTIONS_ENABLED = areAssertionsEnabled();
+
+	private static final JHarrisBPANNE estimator;
+	
+	static {
+		try {
+			estimator = JHarrisBPANNE.loadFromFile("JHarrisTDEstimator.dat");
+		} catch (Exception e) {
+			throw new RuntimeException(e); // bleh.
+		}
+	}
 
 	// Number of cards played on the board so far.
 	// Note: in the middle of getPlay it's generally one off, as is
@@ -190,54 +199,6 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 		// Currently assumes that offset=0, and so the achievable values are
 		// between scale*-10 and scale*10
 		return Math.max(Math.abs(min), Math.abs(max)) * numRowsAndCols;
-	}
-
-	/**
-	 * Loads estimator from file.
-	 * 
-	 * Note: insecure, not that this should make a difference for this case
-	 * 
-	 * TODO: pull into JHarrisBPANNE TODO: add override for
-	 * loadEstimatorFromFile(File file)
-	 *
-	 * @param filename
-	 *            filename to load estimator from
-	 * @return the JHarrisBPANNE that was previously written to said file
-	 */
-	static JHarrisBPANNE loadEstimatorFromFile(String filename) {
-		// Blehh...
-		// My kingdom for a with statement!
-
-		FileInputStream fileIn = null;
-		ObjectInputStream in = null;
-		try {
-			fileIn = new FileInputStream(filename);
-			in = new ObjectInputStream(fileIn);
-			return (JHarrisBPANNE) in.readObject();
-		} catch (IOException | ClassNotFoundException e) {
-			e.printStackTrace();
-			throw new RuntimeException("Cannot find estimator?");
-			// TODO: replace with rethrowing exception and propagate through
-			// Question: what type of exception should be thrown?
-			// UnableToLoadEstimator(String filename)?
-		} finally {
-			try {
-				if (in != null)
-					in.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-				// WISH: add logging here
-				// Here is where I'd log something, if I had a logger.
-			}
-			try {
-				if (fileIn != null)
-					fileIn.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-				// WISH: add logging here
-				// Here is where I'd log something, if I had a logger.
-			}
-		}
 	}
 
 	/**

@@ -23,8 +23,10 @@
  *  and use it once than just to use explicit loops.)
  */
 
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
@@ -171,6 +173,22 @@ public class JHarrisBPANNE implements Serializable {
 				out.close();
 			if (fileOut != null)
 				fileOut.close();
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <T> T loadFromFile(String filename) throws IOException, ClassNotFoundException, ClassCastException {
+		FileInputStream fileIn = null;
+		ObjectInputStream in = null;
+		try {
+			fileIn = new FileInputStream(filename);
+			in = new ObjectInputStream(fileIn);
+			return (T) in.readObject();
+		} finally {
+			if (in != null)
+				in.close();
+			if (fileIn != null)
+				fileIn.close();
 		}
 	}
 
