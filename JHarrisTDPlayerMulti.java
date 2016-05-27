@@ -468,7 +468,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 	/**
 	 * Gets the score of a game played from the passed-in board state to the
 	 * end.
-	 * @param estimator2 
+	 * @param estimator the estimator to use
 	 *
 	 * @param Card[5][5]
 	 *            board the board to play the game on
@@ -502,35 +502,9 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 				temp[ii] = board[ii].clone();
 		}
 
-		// TODO: pull this into a function of its own, as it's duplicated with
-		// the
-		// main getPlay function (just after starting the Monte Carlo threads)
-		int bestIndex = 0;
-		double best = Double.NEGATIVE_INFINITY;
 		Card card = cardsRemainingInDeck[51 - numCardsPlayed]; // Grab next card...
-		for (int j = 0; j < numCardsRemaining; j++) {
-			doBoardPlay(board, card, freePositions[j]); // Try putting it in a
-														// position...
-			double value = estimator.getValueForBoardPos(board); // Get the estimated
-														// value...
-			undoBoardPlay(card, board, freePositions[j]); // Remove the card from said
-													// position
 
-			assert (Arrays.deepEquals(board, temp)); // Check that we haven't
-														// messed anything up
-
-			// Due to the estimator ties appear so rarely that it's not even
-			// worth
-			// accounting for them.
-			if (value > best) { // If it's the best we've see so far...
-				bestIndex = j; // record it.
-				best = value;
-			}
-		}
-		assert (Arrays.deepEquals(board, temp)); // Check (again) that we
-													// haven't messed anything
-													// up
-		// Probably not needed.
+		int bestIndex = findbestPlayGreedy(estimator, board, freePositions, numCardsRemaining, temp, card);
 
 		doBoardPlayAndFreePos(freePositions, board, card, bestIndex, numCardsRemaining - 1); // Do
 		// the
@@ -549,6 +523,56 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 												// haven't messed anything up
 
 		return toRet; // Return the value of the game played to the end
+	}
+	
+	/**
+	 * Gets the best position to play a card at according to an estimator.
+	 * 
+	 * @param estimator the estimator to use
+	 *
+	 * @param Card[5][5]
+	 *            board the board to play the game on
+	 * @param int[25][x,y]
+	 *            freePositions see {@link JHarrisTDPlayerMulti.freePositions
+	 *            freePositions}
+	 * @param numCardsRemaining
+	 *            How many cards are left to play
+	 * @param Card[5][5]
+	 *            boardCopy - only used if assertions are enabled; should be a clone of board
+	 * @param Card card
+	 * 				the card to find the best play for.
+	 * @return the index of the best play in freePositions
+	 */
+	private static int findbestPlayGreedy(JHarrisBPANNE estimator, Card[][] board, int[][] freePositions,
+			int numCardsRemaining, Card[][] boardCopy, Card card) {
+		// WISH: there's a certain amount of duplication between this and getPlay
+		// But getPlay has an array to fill, and this one doesn't.
+		int bestIndex = 0;
+		double best = Double.NEGATIVE_INFINITY;
+		for (int j = 0; j < numCardsRemaining; j++) {
+			doBoardPlay(board, card, freePositions[j]); // Try putting it in a
+														// position...
+			double value = estimator.getValueForBoardPos(board); // Get the estimated
+														// value...
+			undoBoardPlay(card, board, freePositions[j]); // Remove the card from said
+													// position
+
+			assert (Arrays.deepEquals(board, boardCopy)); // Check that we haven't
+														// messed anything up
+
+			// Due to the estimator ties appear so rarely that it's not even
+			// worth
+			// accounting for them.
+			if (value > best) { // If it's the best we've see so far...
+				bestIndex = j; // record it.
+				best = value;
+			}
+		}
+		assert (Arrays.deepEquals(board, boardCopy)); // Check (again) that we
+													// haven't messed anything
+													// up
+		// Probably not needed.
+		return bestIndex;
 	}
 
 	/**
