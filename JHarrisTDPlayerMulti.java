@@ -869,17 +869,13 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 			// WISH: look at having the main player instead keep NUM_THREADS
 			// copies of everything?
 
-			// TODO: look at using clone instead?
-
 			this.freePositions = new int[25][];
 			for (int j = 0; j < 25; j++)
-				this.freePositions[j] = new int[] { play.freePositions[j][0], play.freePositions[j][1] };
+				this.freePositions[j] = play.freePositions[j].clone();
 
 			this.board = new Card[5][];
 			for (int j = 0; j < 5; j++) {
-				this.board[j] = new Card[5];
-				for (int k = 0; k < 5; k++)
-					this.board[j][k] = play.board[j][k];
+				this.board[j] = play.board[j].clone();
 			}
 
 			this.numCardsRemaining = play.numCardsRemaining;
