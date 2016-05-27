@@ -916,9 +916,7 @@ public class JHarrisTDPlayerMulti implements PokerSquaresPlayer {
 			try {
 				// Ensure that there are no weird do/undo errors...
 				Card[][] temp = null;
-				// ASSERTIONS_ENABLED is static final, so this "should" be fine
-				// across multiple threads?
-				// TODO: ensure that this access is legal.
+				// ASSERTIONS_ENABLED is a final small primitive, so this is fine.
 				if (ASSERTIONS_ENABLED) {
 					temp = board.clone();
 					for (int ii = 0; ii < 5; ii++)
